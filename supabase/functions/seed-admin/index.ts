@@ -23,7 +23,6 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Check if admin user already exists in auth.users
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existing = existingUsers?.users?.find((u: any) => u.email === ADMIN_EMAIL);
 
@@ -31,13 +30,11 @@ Deno.serve(async (req: Request) => {
 
     if (existing) {
       userId = existing.id;
-      // Ensure the password is correct by updating it
       await supabase.auth.admin.updateUserById(userId, {
         password: ADMIN_PASSWORD,
         email_confirm: true,
       });
     } else {
-      // Create the admin auth user
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: ADMIN_EMAIL,
         password: ADMIN_PASSWORD,
@@ -49,7 +46,6 @@ Deno.serve(async (req: Request) => {
       userId = newUser.user.id;
     }
 
-    // Upsert the profile
     const { error: profileError } = await supabase.from("profiles").upsert(
       {
         id: userId,
