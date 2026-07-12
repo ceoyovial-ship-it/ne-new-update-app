@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/lib/auth-context';
-import { Toaster } from '@/components/ui/sonner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -18,9 +17,6 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: 'PACE NR Olympiad - Smart School ERP',
   description: 'AI-Powered School ERP System for Students, Parents, Teachers, and Administrators',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default function RootLayout({
@@ -39,7 +35,6 @@ export default function RootLayout({
         >
           <AuthProvider>
             {children}
-            <Toaster richColors position="top-right" />
           </AuthProvider>
         </ThemeProvider>
       </body>

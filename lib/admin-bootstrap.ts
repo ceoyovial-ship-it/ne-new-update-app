@@ -1,6 +1,5 @@
 'use client';
 
-import { supabase } from './supabase';
 import type { Profile, UserRole } from './supabase';
 
 const ADMIN_EMAIL = 'admin@pacenr.com';
@@ -25,10 +24,6 @@ function isDevelopment(): boolean {
   );
 }
 
-/**
- * Calls the seed-admin edge function to ensure the default admin
- * account exists in Supabase. Runs once per browser session.
- */
 export async function ensureAdminAccount(): Promise<void> {
   if (typeof window === 'undefined') return;
 
@@ -62,10 +57,6 @@ export async function ensureAdminAccount(): Promise<void> {
   }
 }
 
-/**
- * Development fallback: when Supabase is unreachable and we're in dev,
- * allow login with admin@pacenr.com / admin123 as a mock session.
- */
 export async function tryDevFallback(
   email: string,
   password: string
