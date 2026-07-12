@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { LayoutDashboard, BookOpen, GraduationCap, Users, Calendar, FileText, DollarSign, Bus, Library, Settings, LogOut, Menu, X, Bell, ChevronDown, Sun, Moon, Award, ClipboardList, BrainCircuit, Megaphone, Image as ImageIcon, MessageSquare, UserCog, Building2, BookMarked, ChartBar as FileBarChart, UsersRound, ChartBar as BarChart3, NotebookPen, Briefcase, Presentation, CalendarClock, ShieldCheck, KeyRound, Lock } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Users, Calendar, FileText, DollarSign, Bus, Library, Settings, LogOut, Menu, X, Bell, ChevronDown, Sun, Moon, Award, ClipboardList, BrainCircuit, Megaphone, Image as ImageIcon, MessageSquare, UserCog, Building2, BookMarked, ChartBar as FileBarChart2, UsersRound, ChartBar as BarChart3, NotebookPen, Briefcase, Presentation, CalendarClock, ShieldCheck, KeyRound, Lock } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -91,7 +91,7 @@ const adminNavItems: NavItem[] = [
   { icon: Calendar, label: 'Events', href: '/admin/events', permission: 'events.view' },
   { icon: ImageIcon, label: 'Gallery', href: '/admin/gallery', permission: 'gallery.view' },
   { icon: Megaphone, label: 'Announcements', href: '/admin/announcements', permission: 'announcements.view' },
-  { icon: FileBarChart, label: 'Reports', href: '/admin/reports', permission: 'reports.view' },
+  { icon: FileBarChart2, label: 'Reports', href: '/admin/reports', permission: 'reports.view' },
   { icon: Settings, label: 'Settings', href: '/admin/settings', permission: 'settings.view' },
   { icon: UserCog, label: 'Profile', href: '/admin/profile' },
 ];
@@ -100,7 +100,7 @@ const adminAdminSection: NavItem[] = [
   { icon: ShieldCheck, label: 'User Management', href: '/admin/users', permission: 'users.view' },
   { icon: KeyRound, label: 'Roles', href: '/admin/roles', permission: 'roles.view' },
   { icon: Lock, label: 'Permissions', href: '/admin/permissions', permission: 'permissions.view' },
-  { icon: FileBarChart, label: 'Audit Logs', href: '/admin/audit-logs' },
+  { icon: FileBarChart2, label: 'Audit Logs', href: '/admin/audit-logs' },
 ];
 
 const navItemsByRole = {
