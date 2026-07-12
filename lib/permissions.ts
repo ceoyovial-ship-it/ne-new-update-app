@@ -44,14 +44,14 @@ export function isSuperAdmin(role: string | undefined): boolean {
 }
 
 export const DASHBOARD_ROUTES: Record<string, string> = {
-  super_admin: '/admin',
-  admin: '/admin',
-  principal: '/admin',
+  super_admin: '/admin/dashboard',
+  admin: '/admin/dashboard',
+  principal: '/admin/dashboard',
   teacher: '/teacher',
   student: '/student',
   parent: '/parent',
-  accountant: '/admin',
-  receptionist: '/admin',
+  accountant: '/admin/dashboard',
+  receptionist: '/admin/dashboard',
 };
 
 export function getDashboardRoute(role: string): string {

@@ -6,14 +6,16 @@ import { supabase, Profile, Student, Teacher, Parent, setRememberMe, Permission 
 import { useRouter, usePathname } from 'next/navigation';
 import { getDashboardRoute, isAdminLevel as isAdminLevelUtil } from './permissions';
 import { logAudit } from './audit';
+import { ensureAdminAccount, tryDevFallback, getDevFallback, clearDevFallback, type FallbackUser } from './admin-bootstrap';
 
 interface AuthUser {
-  user: User;
+  user: User | FallbackUser;
   profile: Profile;
   student?: Student;
   teacher?: Teacher;
   parent?: Parent;
   permissions: string[];
+  isFallback?: boolean;
 }
 
 interface AuthContextType {
@@ -41,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [fallbackUser, setFallbackUser] = useState<FallbackUser | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -115,6 +118,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const getSession = useCallback(async () => {
+    ensureAdminAccount();
+
+    const existingFallback = getDevFallback();
+    if (existingFallback) {
+      setFallbackUser(existingFallback);
+      setUser({
+        user: existingFallback,
+        profile: existingFallback.profile,
+        permissions: existingFallback.permissions,
+        isFallback: true,
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -183,6 +201,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
       });
       if (error) {
+        const fb = await tryDevFallback(email, password);
+        if (fb) {
+          setFallbackUser(fb);
+          setUser({
+          user: fb,
+          profile: fb.profile,
+          permissions: fb.permissions,
+          isFallback: true,
+          });
+          return { error: null };
+        }
         return { error: new Error(error.message) };
       }
       // Audit login success
@@ -218,6 +247,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (fallbackUser) {
+      clearDevFallback();
+      setFallbackUser(null);
+    }
     if (user?.profile) {
       logAudit({ action: 'user.logout', targetEmail: user.profile.email });
     }

@@ -160,14 +160,14 @@ export default function LoginPage() {
   useEffect(() => {
     if (user) {
       const routes: Record<string, string> = {
-        super_admin: '/admin',
-        admin: '/admin',
-        principal: '/admin',
+        super_admin: '/admin/dashboard',
+        admin: '/admin/dashboard',
+        principal: '/admin/dashboard',
         teacher: '/teacher',
         student: '/student',
         parent: '/parent',
-        accountant: '/admin',
-        receptionist: '/admin',
+        accountant: '/admin/dashboard',
+        receptionist: '/admin/dashboard',
       };
       router.replace(routes[user.profile.role] || '/');
     }
@@ -217,6 +217,10 @@ export default function LoginPage() {
           friendly = 'Incorrect email or password. Please try again.';
         } else if (message.includes('email not confirmed')) {
           friendly = 'Your email has not been confirmed. Please contact your administrator.';
+        } else if (message.includes('row level security') || message.includes('rls')) {
+          friendly = 'Access denied by security policy. Please contact your administrator.';
+        } else if (message.includes('timeout') || message.includes('timed out')) {
+          friendly = 'Request timed out. Please check your connection and try again.';
         } else if (message.includes('rate limit') || message.includes('too many')) {
           friendly = 'Too many attempts. Please wait a moment and try again.';
         } else if (
