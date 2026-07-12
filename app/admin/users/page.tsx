@@ -45,11 +45,12 @@ import { toast } from 'sonner';
 import { Search, Plus, MoveHorizontal as MoreHorizontal, Eye, CreditCard as Edit, Trash2, KeyRound, Ban, CircleCheck as CheckCircle, Users as UsersIcon, Shield, Mail, Phone, Building2, Calendar, UserCheck, UserX, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
-import { ROLE_DISPLAY_NAMES, ALL_ROLES } from '@/lib/permissions';
+import { ROLE_DISPLAY_NAMES, ALL_ROLES, isSuperAdmin } from '@/lib/permissions';
+import { logAudit } from '@/lib/audit';
 import type { Profile, UserRole, Branch } from '@/lib/supabase';
 
 export default function UserManagementPage() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
@@ -109,6 +110,10 @@ export default function UserManagementPage() {
     id ? branches.find((b) => b.id === id)?.name || '-' : '-';
 
   const handleToggleActive = async (profile: Profile) => {
+    if (isSuperAdmin(profile.role) && !isSuperAdmin(user?.profile.role)) {
+      toast.error('You cannot modify a Super Admin account');
+      return;
+    }
     const { error } = await supabase
       .from('profiles')
       .update({ is_active: !profile.is_active })
@@ -116,6 +121,13 @@ export default function UserManagementPage() {
     if (error) {
       toast.error('Failed to update user status');
     } else {
+      logAudit({
+        action: !profile.is_active ? 'user.activate' : 'user.deactivate',
+        targetType: 'user',
+        targetId: profile.id,
+        targetEmail: profile.email,
+        details: { name: `${profile.first_name} ${profile.last_name}` },
+      });
       toast.success(`User ${!profile.is_active ? 'activated' : 'deactivated'}`);
       fetchData();
     }
@@ -123,11 +135,23 @@ export default function UserManagementPage() {
 
   const handleDelete = async () => {
     if (!deleteUser) return;
+    if (isSuperAdmin(deleteUser.role) && !isSuperAdmin(user?.profile.role)) {
+      toast.error('You cannot delete a Super Admin account');
+      setDeleteUser(null);
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from('profiles').delete().eq('id', deleteUser.id);
     if (error) {
       toast.error('Failed to delete user');
     } else {
+      logAudit({
+        action: 'user.delete',
+        targetType: 'user',
+        targetId: deleteUser.id,
+        targetEmail: deleteUser.email,
+        details: { name: `${deleteUser.first_name} ${deleteUser.last_name}`, role: deleteUser.role },
+      });
       toast.success('User deleted');
       setDeleteUser(null);
       fetchData();
@@ -137,11 +161,23 @@ export default function UserManagementPage() {
 
   const handleResetPassword = async () => {
     if (!resetUser) return;
+    if (isSuperAdmin(resetUser.role) && !isSuperAdmin(user?.profile.role)) {
+      toast.error('You cannot reset a Super Admin password');
+      setResetUser(null);
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.auth.resetPasswordForEmail(resetUser.email);
     if (error) {
       toast.error('Failed to send reset email');
     } else {
+      logAudit({
+        action: 'user.password_reset',
+        targetType: 'user',
+        targetId: resetUser.id,
+        targetEmail: resetUser.email,
+        details: { name: `${resetUser.first_name} ${resetUser.last_name}` },
+      });
       toast.success('Password reset email sent');
       setResetUser(null);
     }
@@ -356,34 +392,43 @@ export default function UserManagementPage() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 View
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setEditUser(p)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setResetUser(p)}>
-                                <KeyRound className="h-4 w-4 mr-2" />
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleToggleActive(p)}>
-                                {p.is_active ? (
-                                  <>
-                                    <Ban className="h-4 w-4 mr-2" />
-                                    Disable Account
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Activate Account
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeleteUser(p)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
+                              {(!isSuperAdmin(p.role) || isSuperAdmin(user?.profile.role)) && (
+                                <>
+                                  <DropdownMenuItem onClick={() => setEditUser(p)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setResetUser(p)}>
+                                    <KeyRound className="h-4 w-4 mr-2" />
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleToggleActive(p)}>
+                                    {p.is_active ? (
+                                      <>
+                                        <Ban className="h-4 w-4 mr-2" />
+                                        Disable Account
+                                      </>
+                                    ) : (
+                                      <>
+                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                        Activate Account
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteUser(p)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {isSuperAdmin(p.role) && !isSuperAdmin(user?.profile.role) && (
+                                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                  Super Admin accounts can only be managed by Super Admins
+                                </div>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
@@ -403,6 +448,7 @@ export default function UserManagementPage() {
           user={editUser}
           branches={branches}
           classes={classes}
+          currentUserRole={user?.profile.role || ""}
           onClose={() => {
             setAddOpen(false);
             setEditUser(null);
@@ -517,12 +563,14 @@ function UserFormDialog({
   user,
   branches,
   classes,
+  currentUserRole,
   onClose,
   onSaved,
 }: {
   user: Profile | null;
   branches: Branch[];
   classes: any[];
+  currentUserRole: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -562,6 +610,7 @@ function UserFormDialog({
 
     try {
       if (user) {
+        const oldRole = user.role;
         const { error } = await supabase
           .from('profiles')
           .update({
@@ -577,6 +626,26 @@ function UserFormDialog({
           .eq('id', user.id);
 
         if (error) throw error;
+
+        logAudit({
+          action: 'user.update',
+          targetType: 'user',
+          targetId: user.id,
+          targetEmail: formData.email,
+          details: { name: `${formData.first_name} ${formData.last_name}`, role: formData.role },
+        });
+
+        if (oldRole !== formData.role) {
+          logAudit({
+            action: 'user.role_change',
+            targetType: 'user',
+            targetId: user.id,
+            targetEmail: formData.email,
+            oldValues: { role: oldRole },
+            newValues: { role: formData.role },
+          });
+        }
+
         toast.success('User updated successfully');
       } else {
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -600,6 +669,14 @@ function UserFormDialog({
           });
 
           if (profileError) throw profileError;
+
+          logAudit({
+            action: 'user.create',
+            targetType: 'user',
+            targetId: authData.user.id,
+            targetEmail: formData.email,
+            details: { name: `${formData.first_name} ${formData.last_name}`, role: formData.role },
+          });
         }
         toast.success('User created successfully');
       }
@@ -668,7 +745,7 @@ function UserFormDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ALL_ROLES.map((r) => (
+                {ALL_ROLES.filter((r) => isSuperAdmin(currentUserRole) || r !== 'super_admin').map((r) => (
                   <SelectItem key={r} value={r}>
                     {ROLE_DISPLAY_NAMES[r]}
                   </SelectItem>

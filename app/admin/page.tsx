@@ -38,7 +38,7 @@ import {
 import { format } from 'date-fns';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -212,6 +212,7 @@ export default function AdminDashboard() {
 
         {/* Main Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          {hasPermission('students.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -225,7 +226,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {hasPermission('teachers.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -239,7 +242,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {hasPermission('classes.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -253,7 +258,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {hasPermission('parents.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -267,7 +274,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {hasPermission('fees.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -281,7 +290,9 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
 
+          {hasPermission('fees.view') && (
           <Card className="card-hover">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
@@ -295,6 +306,7 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          )}
         </div>
 
         {/* Charts */}

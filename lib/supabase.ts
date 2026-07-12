@@ -506,3 +506,16 @@ export interface AcademicYear {
   is_current: boolean;
   created_at: string;
 }
+
+export interface AuditLog {
+  id: string;
+  user_id: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  old_values: Record<string, any> | null;
+  new_values: Record<string, any> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+}

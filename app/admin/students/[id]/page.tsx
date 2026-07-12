@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { ArrowLeft, CreditCard as Edit, User, GraduationCap, Users as UsersIcon, Calendar, DollarSign, FileText, HeartPulse, Phone, Mail, MapPin, CreditCard, Award, TrendingUp, Download } from 'lucide-react';
+import { ArrowLeft, Pencil as Edit, User, GraduationCap, Users as UsersIcon, Calendar, DollarSign, FileText, HeartPulse, Phone, Mail, MapPin, CreditCard, Award, TrendingUp, Download } from 'lucide-react';
 import type { StudentWithDetails } from '@/lib/student-types';
 
 export default function StudentProfilePage() {

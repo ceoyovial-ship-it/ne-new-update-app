@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { LayoutDashboard, BookOpen, GraduationCap, Users, Calendar, FileText, DollarSign, Bus, Library, Settings, LogOut, Menu, X, Bell, ChevronDown, Sun, Moon, Award, ClipboardList, BrainCircuit, Megaphone, Image as ImageIcon, MessageSquare, UserCog, Building2, BookMarked, FileBarChart, UsersRound, BarChart3, NotebookPen, Briefcase, Presentation, CalendarClock, ShieldCheck, KeyRound, Lock } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Users, Calendar, FileText, DollarSign, Bus, Library, Settings, LogOut, Menu, X, Bell, ChevronDown, Sun, Moon, Award, ClipboardList, BrainCircuit, Megaphone, Image as ImageIcon, MessageSquare, UserCog, Building2, BookMarked, ChartBar as FileBarChart, UsersRound, ChartBar as BarChart3, NotebookPen, Briefcase, Presentation, CalendarClock, ShieldCheck, KeyRound, Lock } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,76 +23,84 @@ interface SidebarProps {
   portalType: 'student' | 'parent' | 'teacher' | 'admin';
 }
 
-const studentNavItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/student' },
+interface NavItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  href: string;
+  permission?: string;
+}
+
+const studentNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/student', permission: 'dashboard.view' },
   { icon: UserCog, label: 'My Profile', href: '/student/profile' },
-  { icon: Calendar, label: 'Attendance', href: '/student/attendance' },
+  { icon: Calendar, label: 'Attendance', href: '/student/attendance', permission: 'attendance.view' },
   { icon: GraduationCap, label: 'Academics', href: '/student/academics' },
-  { icon: Award, label: 'Marks', href: '/student/marks' },
-  { icon: FileText, label: 'Homework', href: '/student/homework' },
-  { icon: ClipboardList, label: 'Assignments', href: '/student/assignments' },
+  { icon: Award, label: 'Marks', href: '/student/marks', permission: 'marks.view' },
+  { icon: FileText, label: 'Homework', href: '/student/homework', permission: 'homework.view' },
+  { icon: ClipboardList, label: 'Assignments', href: '/student/assignments', permission: 'assignments.view' },
   { icon: BookOpen, label: 'Study Materials', href: '/student/materials' },
   { icon: BookMarked, label: 'Syllabus', href: '/student/syllabus' },
-  { icon: CalendarClock, label: 'Examinations', href: '/student/exams' },
-  { icon: DollarSign, label: 'Fee Management', href: '/student/fees' },
-  { icon: Library, label: 'Library', href: '/student/library' },
-  { icon: Bus, label: 'Transport', href: '/student/transport' },
+  { icon: CalendarClock, label: 'Examinations', href: '/student/exams', permission: 'exams.view' },
+  { icon: DollarSign, label: 'Fee Management', href: '/student/fees', permission: 'fees.view' },
+  { icon: Library, label: 'Library', href: '/student/library', permission: 'library.view' },
+  { icon: Bus, label: 'Transport', href: '/student/transport', permission: 'transport.view' },
   { icon: BrainCircuit, label: 'AI Assistant', href: '/student/ai' },
 ];
 
-const parentNavItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/parent' },
+const parentNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/parent', permission: 'dashboard.view' },
   { icon: Users, label: 'My Children', href: '/parent/children' },
-  { icon: Calendar, label: 'Attendance', href: '/parent/attendance' },
+  { icon: Calendar, label: 'Attendance', href: '/parent/attendance', permission: 'attendance.view' },
   { icon: GraduationCap, label: 'Academic Progress', href: '/parent/academics' },
-  { icon: FileText, label: 'Homework', href: '/parent/homework' },
-  { icon: DollarSign, label: 'Fee Management', href: '/parent/fees' },
-  { icon: Megaphone, label: 'Notices', href: '/parent/notices' },
-  { icon: MessageSquare, label: 'Messages', href: '/parent/messages' },
+  { icon: FileText, label: 'Homework', href: '/parent/homework', permission: 'homework.view' },
+  { icon: DollarSign, label: 'Fee Management', href: '/parent/fees', permission: 'fees.view' },
+  { icon: Megaphone, label: 'Notices', href: '/parent/notices', permission: 'announcements.view' },
+  { icon: MessageSquare, label: 'Messages', href: '/parent/messages', permission: 'messages.view' },
   { icon: Bell, label: 'Notifications', href: '/parent/notifications' },
   { icon: UserCog, label: 'Profile', href: '/parent/profile' },
 ];
 
-const teacherNavItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/teacher' },
-  { icon: Building2, label: 'My Classes', href: '/teacher/classes' },
-  { icon: Calendar, label: 'Attendance', href: '/teacher/attendance' },
-  { icon: FileText, label: 'Homework', href: '/teacher/homework' },
-  { icon: ClipboardList, label: 'Assignments', href: '/teacher/assignments' },
+const teacherNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/teacher', permission: 'dashboard.view' },
+  { icon: Building2, label: 'My Classes', href: '/teacher/classes', permission: 'classes.view' },
+  { icon: Calendar, label: 'Attendance', href: '/teacher/attendance', permission: 'attendance.view' },
+  { icon: FileText, label: 'Homework', href: '/teacher/homework', permission: 'homework.view' },
+  { icon: ClipboardList, label: 'Assignments', href: '/teacher/assignments', permission: 'assignments.view' },
   { icon: BookOpen, label: 'Study Materials', href: '/teacher/materials' },
-  { icon: Award, label: 'Examinations', href: '/teacher/exams' },
-  { icon: BarChart3, label: 'Marks Entry', href: '/teacher/marks' },
-  { icon: Megaphone, label: 'Announcements', href: '/teacher/announcements' },
-  { icon: MessageSquare, label: 'Messages', href: '/teacher/messages' },
+  { icon: Award, label: 'Examinations', href: '/teacher/exams', permission: 'exams.view' },
+  { icon: BarChart3, label: 'Marks Entry', href: '/teacher/marks', permission: 'marks.view' },
+  { icon: Megaphone, label: 'Announcements', href: '/teacher/announcements', permission: 'announcements.view' },
+  { icon: MessageSquare, label: 'Messages', href: '/teacher/messages', permission: 'messages.view' },
   { icon: Bell, label: 'Notifications', href: '/teacher/notifications' },
   { icon: UserCog, label: 'Profile', href: '/teacher/profile' },
 ];
 
-const adminNavItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
-  { icon: Users, label: 'Students', href: '/admin/students' },
-  { icon: UsersRound, label: 'Teachers', href: '/admin/teachers' },
-  { icon: Users, label: 'Parents', href: '/admin/parents' },
-  { icon: Building2, label: 'Classes', href: '/admin/classes' },
-  { icon: Calendar, label: 'Attendance', href: '/admin/attendance' },
-  { icon: Award, label: 'Examinations', href: '/admin/exams' },
-  { icon: BarChart3, label: 'Marks', href: '/admin/marks' },
-  { icon: FileText, label: 'Homework', href: '/admin/homework' },
-  { icon: DollarSign, label: 'Fee Management', href: '/admin/fees' },
-  { icon: Library, label: 'Library', href: '/admin/library' },
-  { icon: Bus, label: 'Transport', href: '/admin/transport' },
-  { icon: Calendar, label: 'Events', href: '/admin/events' },
-  { icon: ImageIcon, label: 'Gallery', href: '/admin/gallery' },
-  { icon: Megaphone, label: 'Announcements', href: '/admin/announcements' },
-  { icon: FileBarChart, label: 'Reports', href: '/admin/reports' },
-  { icon: Settings, label: 'Settings', href: '/admin/settings' },
+const adminNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/admin', permission: 'dashboard.view' },
+  { icon: Users, label: 'Students', href: '/admin/students', permission: 'students.view' },
+  { icon: UsersRound, label: 'Teachers', href: '/admin/teachers', permission: 'teachers.view' },
+  { icon: Users, label: 'Parents', href: '/admin/parents', permission: 'parents.view' },
+  { icon: Building2, label: 'Classes', href: '/admin/classes', permission: 'classes.view' },
+  { icon: Calendar, label: 'Attendance', href: '/admin/attendance', permission: 'attendance.view' },
+  { icon: Award, label: 'Examinations', href: '/admin/exams', permission: 'exams.view' },
+  { icon: BarChart3, label: 'Marks', href: '/admin/marks', permission: 'marks.view' },
+  { icon: FileText, label: 'Homework', href: '/admin/homework', permission: 'homework.view' },
+  { icon: DollarSign, label: 'Fee Management', href: '/admin/fees', permission: 'fees.view' },
+  { icon: Library, label: 'Library', href: '/admin/library', permission: 'library.view' },
+  { icon: Bus, label: 'Transport', href: '/admin/transport', permission: 'transport.view' },
+  { icon: Calendar, label: 'Events', href: '/admin/events', permission: 'events.view' },
+  { icon: ImageIcon, label: 'Gallery', href: '/admin/gallery', permission: 'gallery.view' },
+  { icon: Megaphone, label: 'Announcements', href: '/admin/announcements', permission: 'announcements.view' },
+  { icon: FileBarChart, label: 'Reports', href: '/admin/reports', permission: 'reports.view' },
+  { icon: Settings, label: 'Settings', href: '/admin/settings', permission: 'settings.view' },
   { icon: UserCog, label: 'Profile', href: '/admin/profile' },
 ];
 
-const adminAdminSection = [
-  { icon: ShieldCheck, label: 'User Management', href: '/admin/users' },
-  { icon: KeyRound, label: 'Roles', href: '/admin/roles' },
-  { icon: Lock, label: 'Permissions', href: '/admin/permissions' },
+const adminAdminSection: NavItem[] = [
+  { icon: ShieldCheck, label: 'User Management', href: '/admin/users', permission: 'users.view' },
+  { icon: KeyRound, label: 'Roles', href: '/admin/roles', permission: 'roles.view' },
+  { icon: Lock, label: 'Permissions', href: '/admin/permissions', permission: 'permissions.view' },
+  { icon: FileBarChart, label: 'Audit Logs', href: '/admin/audit-logs' },
 ];
 
 const navItemsByRole = {
@@ -110,15 +118,22 @@ export function Sidebar({ portalType }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
 
   const handleLogoutClick = () => setLogoutOpen(true);
 
-  const navItems = navItemsByRole[portalType] || adminNavItems;
+  const allNavItems = navItemsByRole[portalType] || adminNavItems;
+  const navItems = allNavItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
 
-  const showAdminSection = ['super_admin', 'admin'].includes(portalType);
+  const visibleAdminSection = adminAdminSection.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
+
+  const showAdminSection = ['super_admin', 'admin'].includes(portalType) && visibleAdminSection.length > 0;
 
   const getInitials = () => {
     if (!user?.profile) return 'U';
@@ -235,7 +250,7 @@ export function Sidebar({ portalType }: SidebarProps) {
                       Administration
                     </p>
                   </div>
-                  {adminAdminSection.map((item) => {
+                  {visibleAdminSection.map((item) => {
                     const isActive = isActiveLink(item.href);
                     return (
                       <Link

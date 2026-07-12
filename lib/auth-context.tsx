@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile, Student, Teacher, Parent, setRememberMe, Permission } from './supabase';
 import { useRouter, usePathname } from 'next/navigation';
 import { getDashboardRoute, isAdminLevel as isAdminLevelUtil } from './permissions';
+import { logAudit } from './audit';
 
 interface AuthUser {
   user: User;
@@ -184,6 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         return { error: new Error(error.message) };
       }
+      // Audit login success
+      logAudit({ action: 'user.login', targetEmail: trimmedEmail });
       return { error: null };
     } catch (err: any) {
       return { error: new Error(err.message || 'Sign in failed') };
@@ -215,6 +218,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (user?.profile) {
+      logAudit({ action: 'user.logout', targetEmail: user.profile.email });
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
@@ -279,13 +285,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (permission: string): boolean => {
     if (!user) return false;
-    if (isAdminLevelUtil(user.profile.role)) return true;
+    if (user.profile.role === 'super_admin') return true;
     return user.permissions.includes(permission);
   };
 
   const hasAnyPermission = (permissions: string[]): boolean => {
     if (!user) return false;
-    if (isAdminLevelUtil(user.profile.role)) return true;
+    if (user.profile.role === 'super_admin') return true;
     return permissions.some((p) => user.permissions.includes(p));
   };
 

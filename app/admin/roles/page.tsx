@@ -6,18 +6,43 @@ import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
-import { Shield, KeyRound, Lock, CircleCheck as CheckCircle2, Users as UsersIcon, Save } from 'lucide-react';
+import {
+  Shield,
+  KeyRound,
+  Lock,
+  CircleCheck as CheckCircle2,
+  Users as UsersIcon,
+  Save,
+  Plus,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { ROLE_DISPLAY_NAMES, ROLE_DESCRIPTIONS, ALL_ROLES, MODULE_LABELS } from '@/lib/permissions';
+import { logAudit } from '@/lib/audit';
 import type { Role, Permission, UserRole } from '@/lib/supabase';
 
 export default function RolesPage() {
@@ -28,6 +53,9 @@ export default function RolesPage() {
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [selectedPerms, setSelectedPerms] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editRoleDetails, setEditRoleDetails] = useState<Role | null>(null);
+  const [deleteRole, setDeleteRole] = useState<Role | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -62,8 +90,6 @@ export default function RolesPage() {
 
   const permCount = (roleId: string) => rolePermissions[roleId]?.length || 0;
 
-  const permName = (permId: string) => permissions.find((p) => p.id === permId)?.name || '';
-
   const handleEditPermissions = (role: Role) => {
     setEditRole(role);
     setSelectedPerms(rolePermissions[role.id] || []);
@@ -96,11 +122,53 @@ export default function RolesPage() {
           .eq('permission_id', permId);
       }
 
+      logAudit({
+        action: 'role.permission_change',
+        targetType: 'role',
+        targetId: editRole.id,
+        details: { role: editRole.name, added: toAdd.length, removed: toRemove.length },
+      });
+
       toast.success('Permissions updated');
       setEditRole(null);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to update permissions');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteRole = async () => {
+    if (!deleteRole) return;
+    if (deleteRole.is_system) {
+      toast.error('System roles cannot be deleted');
+      setDeleteRole(null);
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error: rpError } = await supabase
+        .from('role_permissions')
+        .delete()
+        .eq('role_id', deleteRole.id);
+      if (rpError) throw rpError;
+
+      const { error } = await supabase.from('roles').delete().eq('id', deleteRole.id);
+      if (error) throw error;
+
+      logAudit({
+        action: 'role.delete',
+        targetType: 'role',
+        targetId: deleteRole.id,
+        details: { role: deleteRole.name },
+      });
+
+      toast.success('Role deleted');
+      setDeleteRole(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete role');
     } finally {
       setSaving(false);
     }
@@ -118,9 +186,8 @@ export default function RolesPage() {
 
       <div className="p-4 lg:p-6 max-w-7xl mx-auto space-y-6 animate-in">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {ALL_ROLES.map((roleName) => {
-            const role = roles.find((r) => r.name === roleName);
-            if (!role) return null;
+          {roles.map((role) => {
+            const roleEnum = ALL_ROLES.find((r) => r === role.name) as UserRole | undefined;
             return (
               <Card key={role.id} className="card-hover">
                 <CardHeader>
@@ -128,14 +195,17 @@ export default function RolesPage() {
                     <div className="p-2 rounded-full bg-primary/10">
                       <Shield className="h-5 w-5 text-primary" />
                     </div>
-                    <Badge variant="secondary">{permCount(role.id)} perms</Badge>
+                    <div className="flex items-center gap-2">
+                      {role.is_system && <Badge variant="outline">System</Badge>}
+                      <Badge variant="secondary">{permCount(role.id)} perms</Badge>
+                    </div>
                   </div>
                   <CardTitle className="text-lg mt-2">{role.display_name}</CardTitle>
                   <CardDescription className="text-xs">
-                    {ROLE_DESCRIPTIONS[roleName as UserRole]}
+                    {role.description || (roleEnum ? ROLE_DESCRIPTIONS[roleEnum] : '')}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -145,6 +215,28 @@ export default function RolesPage() {
                     <KeyRound className="h-4 w-4 mr-2" />
                     Manage Permissions
                   </Button>
+                  {!role.is_system && (
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setEditRoleDetails(role)}
+                      >
+                        <Pencil className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-red-600 hover:text-red-700"
+                        onClick={() => setDeleteRole(role)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -153,10 +245,16 @@ export default function RolesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5 text-primary" />
-              Role Overview
-            </CardTitle>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <UsersIcon className="h-5 w-5 text-primary" />
+                Role Overview
+              </CardTitle>
+              <Button onClick={() => setAddOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Role
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto rounded-lg border">
@@ -166,13 +264,14 @@ export default function RolesPage() {
                     <th className="p-3 font-semibold">Role</th>
                     <th className="p-3 font-semibold">Description</th>
                     <th className="p-3 font-semibold">Permissions</th>
+                    <th className="p-3 font-semibold">Type</th>
                     <th className="p-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                      <td colSpan={5} className="p-8 text-center text-muted-foreground">
                         Loading roles...
                       </td>
                     </tr>
@@ -184,15 +283,43 @@ export default function RolesPage() {
                         <td className="p-3">
                           <Badge variant="secondary">{permCount(role.id)}</Badge>
                         </td>
+                        <td className="p-3">
+                          {role.is_system ? (
+                            <Badge variant="outline">System</Badge>
+                          ) : (
+                            <Badge variant="secondary">Custom</Badge>
+                          )}
+                        </td>
                         <td className="p-3 text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditPermissions(role)}
-                          >
-                            <Lock className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
+                          <div className="flex items-center gap-1 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditPermissions(role)}
+                            >
+                              <Lock className="h-4 w-4 mr-1" />
+                              Perms
+                            </Button>
+                            {!role.is_system && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditRoleDetails(role)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-600"
+                                  onClick={() => setDeleteRole(role)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -212,6 +339,9 @@ export default function RolesPage() {
               <Shield className="h-5 w-5 text-primary" />
               {editRole?.display_name} - Permissions
             </DialogTitle>
+            <DialogDescription>
+              Toggle permissions for this role. Changes take effect immediately for users with this role.
+            </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-[60vh] pr-4">
             <div className="space-y-4">
@@ -255,6 +385,184 @@ export default function RolesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add/Edit Role Dialog */}
+      {(addOpen || editRoleDetails) && (
+        <RoleFormDialog
+          role={editRoleDetails}
+          onClose={() => {
+            setAddOpen(false);
+            setEditRoleDetails(null);
+          }}
+          onSaved={() => {
+            setAddOpen(false);
+            setEditRoleDetails(null);
+            fetchData();
+          }}
+        />
+      )}
+
+      {/* Delete Role Confirmation */}
+      <AlertDialog
+        open={!!deleteRole}
+        onOpenChange={(open) => !open && setDeleteRole(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the role &quot;{deleteRole?.display_name}&quot;? This
+              will remove all associated permissions. Users assigned to this role may lose access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteRole}
+              disabled={saving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {saving ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+function RoleFormDialog({
+  role,
+  onClose,
+  onSaved,
+}: {
+  role: Role | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: role?.name || '',
+    display_name: role?.display_name || '',
+    description: role?.description || '',
+    is_system: role?.is_system || false,
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!formData.name.trim()) e.name = 'Role key is required';
+    if (!formData.display_name.trim()) e.display_name = 'Display name is required';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    setSaving(true);
+
+    try {
+      if (role) {
+        const { error } = await supabase
+          .from('roles')
+          .update({
+            display_name: formData.display_name,
+            description: formData.description,
+          })
+          .eq('id', role.id);
+        if (error) throw error;
+
+        logAudit({
+          action: 'role.update',
+          targetType: 'role',
+          targetId: role.id,
+          details: { name: formData.name, display_name: formData.display_name },
+        });
+
+        toast.success('Role updated');
+      } else {
+        const { data, error } = await supabase
+          .from('roles')
+          .insert({
+            name: formData.name.toLowerCase().replace(/\s+/g, '_'),
+            display_name: formData.display_name,
+            description: formData.description,
+            is_system: false,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+
+        logAudit({
+          action: 'role.create',
+          targetType: 'role',
+          targetId: data.id,
+          details: { name: data.name, display_name: data.display_name },
+        });
+
+        toast.success('Role created');
+      }
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save role');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{role ? 'Edit Role' : 'Create New Role'}</DialogTitle>
+          <DialogDescription>
+            {role ? 'Update role details' : 'Define a new custom role for your school'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label>Role Key *</Label>
+            <Input
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g. librarian"
+              disabled={!!role}
+            />
+            {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+            <p className="text-xs text-muted-foreground">
+              Used internally. Cannot be changed after creation.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Display Name *</Label>
+            <Input
+              value={formData.display_name}
+              onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+              placeholder="e.g. Librarian"
+            />
+            {errors.display_name && <p className="text-xs text-red-500">{errors.display_name}</p>}
+          </div>
+          <div className="space-y-1.5">
+            <Label>Description</Label>
+            <Textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Brief description of this role"
+              rows={3}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={saving}>
+            {saving ? 'Saving...' : role ? 'Update Role' : 'Create Role'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
