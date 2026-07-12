@@ -4,40 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
-import {
-  LayoutDashboard,
-  BookOpen,
-  GraduationCap,
-  Users,
-  Calendar,
-  FileText,
-  DollarSign,
-  Bus,
-  Library,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  Bell,
-  ChevronDown,
-  Award,
-  ClipboardList,
-  BrainCircuit,
-  Megaphone,
-  Image as ImageIcon,
-  MessageSquare,
-  UserCog,
-  Building2,
-  BookMarked,
-  BarChart3,
-  NotebookPen,
-  Briefcase,
-  Presentation,
-  CalendarClock,
-  ShieldCheck,
-  KeyRound,
-  Lock,
-} from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, Users, Calendar, FileText, DollarSign, Bus, Library, Settings, LogOut, Menu, X, Bell, ChevronDown, Award, ClipboardList, BrainCircuit, Megaphone, Image as ImageIcon, MessageSquare, UserCog, Building2, BookMarked, ChartBar as BarChart3, NotebookPen, Briefcase, Presentation, CalendarClock, ShieldCheck, KeyRound, Lock } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
